@@ -1,17 +1,14 @@
 package com.datadog.debugger.probe;
 
-import static com.datadog.debugger.snapshot.SpanDebug.ALL_FRAMES;
-import static com.datadog.debugger.snapshot.SpanDebug.CAPTURE_ALL_PROBES;
-import static com.datadog.debugger.snapshot.SpanDebug.CAPTURE_ORIGIN_FRAMES;
-import static com.datadog.debugger.snapshot.SpanDebug.ORIGIN_FRAME_ONLY;
-import static com.datadog.debugger.snapshot.SpanDebug.isSpanDebugEnabled;
+import static com.datadog.debugger.codeorigin.DebuggerConfiguration.isDebuggerDisabled;
+import static com.datadog.debugger.codeorigin.DebuggerConfiguration.isDebuggerEnabled;
 import static datadog.trace.api.DDTags.DD_EXIT_LOCATION_SNAPSHOT_ID;
 import static java.lang.String.format;
 
 import com.datadog.debugger.agent.DebuggerAgent;
+import com.datadog.debugger.codeorigin.CodeOriginProbeManager;
 import com.datadog.debugger.instrumentation.InstrumentationResult;
 import com.datadog.debugger.sink.Snapshot;
-import com.datadog.debugger.snapshot.SpanDebuggerProbeManager;
 import com.datadog.debugger.util.ClassNameFiltering;
 import datadog.trace.api.DDTags;
 import datadog.trace.bootstrap.debugger.CapturedContext;
@@ -31,17 +28,17 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SpanDebuggerProbe extends LogProbe implements ForceMethodInstrumentation {
-  private static final Logger LOGGER = LoggerFactory.getLogger(SpanDebuggerProbe.class);
+public class CodeOriginProbe extends LogProbe implements ForceMethodInstrumentation {
+  private static final Logger LOGGER = LoggerFactory.getLogger(CodeOriginProbe.class);
 
   private final String signature;
 
   private final boolean entrySpanProbe;
 
-  private final transient SpanDebuggerProbeManager probeManager;
+  private final transient CodeOriginProbeManager probeManager;
 
-  public SpanDebuggerProbe(
-      ProbeId probeId, String signature, Where where, SpanDebuggerProbeManager probeManager) {
+  public CodeOriginProbe(
+      ProbeId probeId, String signature, Where where, CodeOriginProbeManager probeManager) {
     super(LANGUAGE, probeId, null, where, MethodLocation.EXIT, null, null, true, null, null, null);
     this.signature = signature;
     this.entrySpanProbe = signature != null;
@@ -89,9 +86,11 @@ public class SpanDebuggerProbe extends LogProbe implements ForceMethodInstrument
       CapturedContext entryContext,
       CapturedContext exitContext,
       List<CapturedThrowable> caughtExceptions) {
-    if (isSpanDebugEnabled(span, CAPTURE_ORIGIN_FRAMES, CAPTURE_ALL_PROBES)) {
+    if (isDebuggerEnabled(span)) {
       String key =
-          entrySpanProbe ? DDTags.DD_ENTRY_LOCATION_SNAPSHOT_ID : DD_EXIT_LOCATION_SNAPSHOT_ID;
+          entrySpanProbe
+              ? DDTags.DD_CODE_ORIGIN_LOCATION_SNAPSHOT_ID
+              : DD_EXIT_LOCATION_SNAPSHOT_ID;
       Snapshot snapshot = createSnapshot();
       if (fillSnapshot(entryContext, exitContext, caughtExceptions, snapshot)) {
         LOGGER.debug(
@@ -126,7 +125,7 @@ public class SpanDebuggerProbe extends LogProbe implements ForceMethodInstrument
   }
 
   private void applySpanOriginTags(AgentSpan span) {
-    if (isSpanDebugEnabled(span, ORIGIN_FRAME_ONLY, ALL_FRAMES)) {
+    if (!isDebuggerDisabled(span)) {
       List<StackTraceElement> entries = getUserStackFrames();
       if (!entries.isEmpty()) {
         if (entrySpanProbe) {
@@ -134,22 +133,20 @@ public class SpanDebuggerProbe extends LogProbe implements ForceMethodInstrument
           Set<AgentSpan> spans = new LinkedHashSet<>();
           spans.add(span);
           AgentSpan rootSpan = span.getLocalRootSpan();
-          if (rootSpan != null && rootSpan.getTags().get(DDTags.DD_ENTRY_LOCATION_FILE) == null) {
+          if (rootSpan != null
+              && rootSpan.getTags().get(DDTags.DD_CODE_ORIGIN_LOCATION_FILE) == null) {
             spans.add(rootSpan);
           }
           for (AgentSpan s : spans) {
             s.setTag("_dd.di.has_code_location", true);
-            s.setTag(DDTags.DD_ENTRY_LOCATION_FILE, toFileName(entry.getClassName()));
-            s.setTag(DDTags.DD_ENTRY_METHOD, entry.getMethodName());
-            s.setTag(DDTags.DD_ENTRY_LINE, entry.getLineNumber());
-            s.setTag(DDTags.DD_ENTRY_TYPE, entry.getClassName());
-            s.setTag(DDTags.DD_ENTRY_METHOD_SIGNATURE, signature);
+            s.setTag(DDTags.DD_CODE_ORIGIN_LOCATION_FILE, toFileName(entry.getClassName()));
+            s.setTag(DDTags.DD_CODE_ORIGIN_METHOD, entry.getMethodName());
+            s.setTag(DDTags.DD_CODE_ORIGIN_LINE, entry.getLineNumber());
+            s.setTag(DDTags.DD_CODE_ORIGIN_TYPE, entry.getClassName());
+            s.setTag(DDTags.DD_CODE_ORIGIN_METHOD_SIGNATURE, signature);
           }
         } else {
           span.setTag("_dd.di.has_code_location", true);
-          if (isSpanDebugEnabled(span, ORIGIN_FRAME_ONLY)) {
-            entries = entries.subList(0, 1);
-          }
           for (int i = 0; i < entries.size(); i++) {
             StackTraceElement element = entries.get(i);
             span.setTag(
