@@ -21,7 +21,7 @@ public class CodeOriginInfo {
 
   public static void exit(AgentSpan span) {
     if (InstrumenterConfig.get().isCodeOriginEnabled()) {
-      //      span.getLocalRootSpan().setMetaStruct(captureCodeOrigin(null), span);
+      span.getLocalRootSpan().setMetaStruct(captureCodeOrigin(null), span);
     }
   }
 }
