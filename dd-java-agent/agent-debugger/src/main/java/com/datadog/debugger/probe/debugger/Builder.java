@@ -4,11 +4,15 @@ import com.datadog.debugger.el.ProbeCondition;
 import com.datadog.debugger.probe.DebuggerProbe;
 import com.datadog.debugger.probe.LogProbe.Sampling;
 import com.datadog.debugger.probe.ProbeDefinition;
+import datadog.trace.bootstrap.debugger.MethodLocation;
 
 public class Builder extends ProbeDefinition.Builder<Builder> {
   private ProbeCondition probeCondition;
-
   private Sampling sampling;
+
+  public Builder() {
+    evaluateAt(MethodLocation.ENTRY);
+  }
 
   public Builder sampling(Sampling sampling) {
     this.sampling = sampling;

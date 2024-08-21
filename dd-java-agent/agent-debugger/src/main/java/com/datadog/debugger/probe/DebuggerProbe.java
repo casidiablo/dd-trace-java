@@ -39,7 +39,7 @@ public class DebuggerProbe extends ProbeDefinition {
   // no-arg constructor is required by Moshi to avoid creating instance with unsafe and by-passing
   // constructors, including field initializers.
   public DebuggerProbe() {
-    this(LANGUAGE, null, Tag.fromStrings(null), null, null, null);
+    this(LANGUAGE, null, (Tag[]) null, null, null, null);
   }
 
   public DebuggerProbe(
@@ -62,11 +62,6 @@ public class DebuggerProbe extends ProbeDefinition {
     super(language, probeId, tags, where, MethodLocation.ENTRY);
     this.probeCondition = probeCondition;
     this.sampling = sampling;
-  }
-
-  public DebuggerProbe copy() {
-    return new DebuggerProbe(
-        language, new ProbeId(id, version), tags, where, probeCondition, sampling);
   }
 
   public ProbeCondition getProbeCondition() {
@@ -149,9 +144,9 @@ public class DebuggerProbe extends ProbeDefinition {
       CapturedContext entryContext,
       CapturedContext exitContext,
       List<CapturedContext.CapturedThrowable> caughtExceptions) {
+    decorateTags();
     Snapshot snapshot = createSnapshot();
     boolean shouldCommit = fillSnapshot(entryContext, exitContext, caughtExceptions, snapshot);
-    decorateTags();
     DebuggerSink sink = DebuggerAgent.getSink();
     if (shouldCommit) {
       commitSnapshot(snapshot, sink);
@@ -257,7 +252,7 @@ public class DebuggerProbe extends ProbeDefinition {
       return;
     }
     agentSpan.setTag("_dd.p.debug", "1");
-    agentSpan.setTag("_dd.ld.probe_id", probeId.getEncodedId());
+    agentSpan.setTag("_dd.ld.probe_id", probeId.getId());
 
     DebuggerAgent.getSink().getProbeStatusSink().addEmitting(probeId);
   }

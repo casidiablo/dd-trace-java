@@ -569,9 +569,7 @@ public class DebuggerTransformer implements ClassFileTransformer {
       // Log and span decoration probe shared the same instrumentor: CaptureContextInstrumentor
       // and therefore need to be instrumented once
       // note: exception probes are log probes and are handled the same way
-      if (definition instanceof LogProbe
-          || definition instanceof SpanDecorationProbe
-          || definition instanceof DebuggerProbe) {
+      if (definition instanceof LogProbe || definition instanceof SpanDecorationProbe) {
         if (definition instanceof ExceptionProbe) {
           if (addedExceptionProbe) {
             continue;
