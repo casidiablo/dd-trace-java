@@ -39,15 +39,37 @@ public abstract class DeterministicSampler implements RateSampler {
   private static final double MAX = Math.pow(2, 64) - 1;
 
   private final float rate;
+  private final java.io.FileWriter fileWriter;
 
   public DeterministicSampler(final double rate) {
     this.rate = (float) rate;
+    try {
+    this.fileWriter = new java.io.FileWriter("/tmp/sampling.txt");
+    } catch (java.io.IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Override
   public <T extends CoreSpan<T>> boolean sample(final T span) {
     // unsigned 64 bit comparison with cutoff
-    return getSamplingId(span) * KNUTH_FACTOR + Long.MIN_VALUE < cutoff(rate);
+    boolean toSample = getSamplingId(span) * KNUTH_FACTOR + Long.MIN_VALUE < cutoff(rate);
+
+//    try {
+//      fileWriter.write(":::: sampling span: " + span + " with rate: " + rate + " and cutoff: " + cutoff(rate) + " and samplingId: " + getSamplingId(span) + " and KNUTH_FACTOR: " + KNUTH_FACTOR + " and Long.MIN_VALUE: " + Long.MIN_VALUE + " and result: " + (getSamplingId(span) * KNUTH_FACTOR + Long.MIN_VALUE) + " < " + cutoff(rate) + " = " + toSample);
+//      fileWriter.write("\n");
+//      if (toSample) {
+//        fileWriter.write(":::_: sampled out");
+//        fileWriter.write("\n");
+//      } else {
+//        fileWriter.write(":::-: not sampled out");
+//        fileWriter.write("\n");
+//      }
+//      fileWriter.flush();
+//    } catch (java.io.IOException e) {
+//      e.printStackTrace();
+//    }
+    return toSample;
   }
 
   protected abstract <T extends CoreSpan<T>> long getSamplingId(T span);

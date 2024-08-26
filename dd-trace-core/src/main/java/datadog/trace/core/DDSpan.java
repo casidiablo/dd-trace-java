@@ -597,7 +597,9 @@ public class DDSpan
   @Override
   public DDSpan setSamplingPriority(
       int samplingPriority, CharSequence rate, double sampleRate, int samplingMechanism) {
+//    System.out.println(":::: trying to set sampling priority to " + samplingPriority);
     if (context.setSamplingPriority(samplingPriority, samplingMechanism)) {
+//      System.out.println(":::: sampling priority set " + samplingPriority + " " + rate + " " + sampleRate);
       setMetric(rate, sampleRate);
     }
     return this;

@@ -548,18 +548,20 @@ public class DDSpanContext
     if (SamplingMechanism.canAvoidSamplingPriorityLock(newPriority, newMechanism)) {
       SAMPLING_PRIORITY_UPDATER.set(this, newPriority);
       propagationTags.updateTraceSamplingPriority(newPriority, newMechanism);
+//      System.out.println("  :::: samplingPriority2 set to priority: " + newPriority + " mechanism: " + newMechanism);
       return true;
     }
     if (!SAMPLING_PRIORITY_UPDATER.compareAndSet(this, PrioritySampling.UNSET, newPriority)) {
       if (log.isDebugEnabled()) {
-        log.debug(
-            "samplingPriority locked at priority: {}. Refusing to set to priority: {} mechanism: {}",
+        log.info(
+            ":::: samplingPriority locked at priority: {}. Refusing to set to priority: {} mechanism: {}",
             samplingPriority,
             newPriority,
             newMechanism);
       }
       return false;
     }
+//    System.out.println("::::: samplingPriority3 set to priority: " + newPriority + " mechanism: " + newMechanism);
     // set trace level sampling priority tag propagationTags
     propagationTags.updateTraceSamplingPriority(newPriority, newMechanism);
     return true;

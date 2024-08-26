@@ -36,11 +36,11 @@ public final class StatusLogger extends JsonAdapter<Config>
   public void run(Config config) {
     Logger log = LoggerFactory.getLogger(StatusLogger.class);
     if (log.isInfoEnabled()) {
-      System.out.println(":::: " + config.getTraceSamplingRules());
+//      System.out.println(":::: " + config.getTraceSamplingRules());
       TraceSamplingRules tsr = TraceSamplingRules.deserialize(config.getTraceSamplingRules());
-      System.out.println(":::: tsr: " + tsr);
+//      System.out.println(":::: tsr: " + tsr);
       for(Rule rule : tsr.getRules()) {
-        System.out.println(":::: tsr.rule: " + rule.getService() + " ... " + rule.getSampleRate());
+//        System.out.println(":::: tsr.rule: " + rule.getService() + " ... " + rule.getSampleRate());
       }
       log.info(
           "DATADOG TRACER CONFIGURATION {}",

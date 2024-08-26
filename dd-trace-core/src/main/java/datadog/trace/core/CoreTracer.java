@@ -1450,7 +1450,7 @@ public class CoreTracer implements AgentTracer.TracerAPI {
       final long parentSpanId;
       final Map<String, String> baggage;
       final TraceCollector parentTraceCollector;
-      final int samplingPriority;
+      int samplingPriority;
       final CharSequence origin;
       final Map<String, String> coreTags;
       final Map<String, ?> rootSpanTags;
@@ -1491,6 +1491,7 @@ public class CoreTracer implements AgentTracer.TracerAPI {
         baggage = ddsc.getBaggageItems();
         parentTraceCollector = ddsc.getTraceCollector();
         samplingPriority = PrioritySampling.UNSET;
+//        System.out.println("::::: samplingPriority = PrioritySampling.UNSET: " + samplingPriority + " but ddsc.getSamplingPriority() = " + ddsc.getSamplingPriority());
         origin = null;
         coreTags = null;
         rootSpanTags = null;
@@ -1519,6 +1520,7 @@ public class CoreTracer implements AgentTracer.TracerAPI {
           traceId = extractedContext.getTraceId();
           parentSpanId = extractedContext.getSpanId();
           samplingPriority = extractedContext.getSamplingPriority();
+//          System.out.println("::::: samplingPriority = parentContext instanceof ExtractedContext " + samplingPriority);
           endToEndStartTime = extractedContext.getEndToEndStartTime();
           propagationTags = extractedContext.getPropagationTags();
         } else if (parentContext != null) {
@@ -1528,6 +1530,7 @@ public class CoreTracer implements AgentTracer.TracerAPI {
                   : parentContext.getTraceId();
           parentSpanId = parentContext.getSpanId();
           samplingPriority = parentContext.getSamplingPriority();
+//          System.out.println("::::: samplingPriority = parentContext != null = " + samplingPriority);
           endToEndStartTime = 0;
           propagationTags = propagationTagsFactory.empty();
         } else {
@@ -1535,6 +1538,7 @@ public class CoreTracer implements AgentTracer.TracerAPI {
           traceId = idGenerationStrategy.generateTraceId();
           parentSpanId = DDSpanId.ZERO;
           samplingPriority = PrioritySampling.UNSET;
+//          System.out.println("::::: samplingPriority else " + samplingPriority + " because parentContext is null");
           endToEndStartTime = 0;
           propagationTags = propagationTagsFactory.empty();
         }
@@ -1616,6 +1620,15 @@ public class CoreTracer implements AgentTracer.TracerAPI {
         requestContextDataIast = builderRequestContextDataIast;
       }
 
+      double sampleRate = traceConfig.getTraceSampleRate();
+      if (sampleRate < 1.0) {
+          double random = java.util.concurrent.ThreadLocalRandom.current().nextDouble();
+            if (random >= sampleRate) {
+                samplingPriority = -1;
+//              System.out.println("::::changed samplingPriority to -1 because random: " + random + " >= sampleRate: " + sampleRate);
+            }
+      }
+
       // some attributes are inherited from the parent
       context =
           new DDSpanContext(
@@ -1626,7 +1639,7 @@ public class CoreTracer implements AgentTracer.TracerAPI {
               serviceName,
               operationName,
               resourceName,
-              samplingPriority,
+              samplingPriority, // -1 disables it
               origin,
               baggage,
               errorFlag,
@@ -1650,6 +1663,7 @@ public class CoreTracer implements AgentTracer.TracerAPI {
       context.setAllTags(tags);
       context.setAllTags(coreTags);
       context.setAllTags(rootSpanTags);
+//      System.out.println(":::: built context with samplingPriority: " + samplingPriority + " and " + context);
       return context;
     }
   }
